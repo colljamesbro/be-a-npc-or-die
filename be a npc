@@ -1,0 +1,102 @@
+-- Main script for creating the password GUI, ESP, and teleportation functionality
+
+local password = "pass"  -- Define the correct password
+local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
+
+-- Create the Password GUI
+local passwordGui = Instance.new("ScreenGui")
+passwordGui.Parent = player:WaitForChild("PlayerGui")
+
+local textBox = Instance.new("TextBox")
+textBox.Size = UDim2.new(0, 200, 0, 50)
+textBox.Position = UDim2.new(0.5, -100, 0.5, -25)
+textBox.PlaceholderText = "Enter Password"
+textBox.Parent = passwordGui
+
+local submitButton = Instance.new("TextButton")
+submitButton.Size = UDim2.new(0, 100, 0, 50)
+submitButton.Position = UDim2.new(0.5, -50, 0.5, 25)
+submitButton.Text = "Submit"
+submitButton.Parent = passwordGui
+
+-- Create the ESP GUI (Initially hidden)
+local espGui = Instance.new("ScreenGui")
+espGui.Parent = player:WaitForChild("PlayerGui")
+espGui.Enabled = false  -- Initially disable
+
+local espLabel = Instance.new("TextLabel")
+espLabel.Size = UDim2.new(0, 200, 0, 50)
+espLabel.Position = UDim2.new(0.5, -100, 0.5, -100)
+espLabel.Text = "ESP: Active"
+espLabel.Parent = espGui
+
+-- Check the password
+submitButton.MouseButton1Click:Connect(function()
+    if textBox.Text == password then
+        passwordGui:Destroy()  -- Remove password GUI if correct
+        espGui.Enabled = true  -- Enable ESP GUI
+    else
+        textBox.Text = ""  -- Reset text if wrong password
+        print("Incorrect password")
+    end
+end)
+
+-- ESP functionality (display all players in the game)
+game:GetService("RunService").Heartbeat:Connect(function()
+    if espGui.Enabled then
+        for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+            if otherPlayer ~= player then
+                -- ESP logic to mark the player's position
+                local char = otherPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local espPart = Instance.new("BillboardGui")
+                    espPart.Adornee = char.HumanoidRootPart
+                    espPart.Size = UDim2.new(0, 100, 0, 100)
+                    espPart.Parent = espGui
+                    local text = Instance.new("TextLabel")
+                    text.Text = otherPlayer.Name
+                    text.Size = UDim2.new(1, 0, 1, 0)
+                    text.BackgroundTransparency = 1
+                    text.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    text.Parent = espPart
+                end
+            end
+        end
+    end
+end)
+
+-- Teleportation when someone with a gun is looking at you
+game:GetService("RunService").Heartbeat:Connect(function()
+    for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+        if otherPlayer.Team.Name == "Sheriffs" then
+            local char = otherPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                local gun = char:FindFirstChild("Gun") -- Assumed Gun is the tool
+                if gun then
+                    local direction = (char.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Unit
+                    local ray = Ray.new(char.HumanoidRootPart.Position, direction * 100)
+
+                    local hitPart, hitPos = game.Workspace:FindPartOnRay(ray, player)
+
+                    if hitPart and hitPart.Parent == player.Character then
+                        -- Teleport the player to a random player that is NOT on the 'Sheriffs' team
+                        local randomPlayer = game.Players:GetPlayers()
+                        local nonSheriffPlayers = {}
+                        for _, p in pairs(randomPlayer) do
+                            if p.Team.Name ~= "Sheriffs" then
+                                table.insert(nonSheriffPlayers, p)
+                            end
+                        end
+                        
+                        if #nonSheriffPlayers > 0 then
+                            local randomNonSheriffPlayer = nonSheriffPlayers[math.random(1, #nonSheriffPlayers)]
+                            player.Character:SetPrimaryPartCFrame(randomNonSheriffPlayer.Character.HumanoidRootPart.CFrame)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
