@@ -23,6 +23,7 @@ submitButton.Parent = passwordGui
 -- Create the side GUI for ESP and teleportation buttons
 local sideGui = Instance.new("ScreenGui")
 sideGui.Parent = player:WaitForChild("PlayerGui")
+sideGui.Enabled = false  -- Initially hidden
 
 local espButton = Instance.new("TextButton")
 espButton.Size = UDim2.new(0, 200, 0, 50)
@@ -92,7 +93,7 @@ game:GetService("RunService").Heartbeat:Connect(function()
     end
 end)
 
--- Teleportation when someone with a gun is looking at you
+-- Teleportation when someone from 'Sheriffs' team looks at you
 local teleportActive = false
 teleportButton.MouseButton1Click:Connect(function()
     teleportActive = not teleportActive
@@ -125,7 +126,12 @@ game:GetService("RunService").Heartbeat:Connect(function()
                             local nonSheriffPlayers = {}
                             for _, p in pairs(randomPlayer) do
                                 if p.Team.Name ~= "Sheriffs" then
-                                    table.insert(nonSheriffPlayers, p)
+                                    -- Only add players near the 'Sheriffs' player
+                                    local sheriffPos = char.HumanoidRootPart.Position
+                                    local distance = (sheriffPos - p.Character.HumanoidRootPart.Position).Magnitude
+                                    if distance < 50 then -- Distance to consider as "near"
+                                        table.insert(nonSheriffPlayers, p)
+                                    end
                                 end
                             end
                             
